@@ -9,11 +9,9 @@ SENSOR_READ_PAUSE = 15
 
 app = Flask(__name__)
 readCache = None
-readAttempts = list()
 
 def readSensor():
     global readCache
-    global readAttempts
     while True:
         currentTime = time.time()
         print("Read attempt at " + str(currentTime) + "...")
