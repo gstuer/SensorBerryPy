@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import time
 import threading
+import RPi.GPIO as GPIO
 
 # Required for DHT sensor
 import Adafruit_DHT
@@ -14,9 +15,15 @@ import adafruit_ssd1306
 DHT_SENSOR_TYPE = Adafruit_DHT.AM2302
 DHT_SENSOR_PIN = 18
 DHT_SENSOR_READ_PAUSE = 15
+DISPLAY_ON_TIME = 30
+INTERACTION_SENSOR_PIN = 17
+INTERACTION_SENSOR_PULL = GPIO.PUD_DOWN
+INTERACTION_SENSOR_DETECTION_EDGE = GPIO.FALLING
+INTERACTION_SENSOR_DEBOUNCE_TIME = 0.25
 
 app = Flask(__name__)
 readCache = None
+displayEnabledTimestamp = time.time()
 
 def readSensorDHT():
     global readCache
@@ -29,12 +36,24 @@ def readSensorDHT():
             readCache = (currentTime, humidity, temperature)
         time.sleep(DHT_SENSOR_READ_PAUSE)
 
+def detectInteraction():
+    global displayEnabledTimestamp
+
+    # Configure GPIO
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(INTERACTION_SENSOR_PIN, GPIO.IN, pull_up_down=INTERACTION_SENSOR_PULL)
+    while True:
+        if GPIO.wait_for_edge(INTERACTION_SENSOR_PIN, INTERACTION_SENSOR_DETECTION_EDGE) is not None:
+            displayEnabledTimestamp = time.time()
+        time.sleep(INTERACTION_SENSOR_DEBOUNCE_TIME)
+
 def refreshOLED():
     # SPDX-FileCopyrightText: 2017 Tony DiCola for Adafruit Industries
     # SPDX-FileCopyrightText: 2017 James DeVito for Adafruit Industries
     # SPDX-License-Identifier: MIT
 
     global readCache
+    global displayEnabledTimestamp
 
     # Create the I2C interface.
     i2c = busio.I2C(SCL, SDA)
@@ -75,16 +94,17 @@ def refreshOLED():
         draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
         # Write four lines of text.
-        if readCache is not None:
-            timestamp, humidity, temperature = readCache
-            currentTime = int(time.time())
-            dataAge = currentTime - int(timestamp)
-            draw.text((x, top + 0), "Data Age: " + str(dataAge) + " s", font=font, fill=255)
-            draw.text((x, top + 8), "Temperature: " + "{:.2f}".format(temperature) + " °C", font=font, fill=255)
-            draw.text((x, top + 16), "Humidity: " + "{:.2f}".format(humidity) + " %", font=font, fill=255)
-            draw.text((x, top + 25), "CO2: 400 PPM", font=font, fill=255)
-        else:
-            draw.text((x, top + 0), "Reading sensors...", font=font, fill=255)
+        currentTime = time.time()
+        if (currentTime - displayEnabledTimestamp) < DISPLAY_ON_TIME:
+            if readCache is not None:
+                timestamp, humidity, temperature = readCache
+                dataAge = int(currentTime) - int(timestamp)
+                draw.text((x, top + 0), "Data Age: " + str(dataAge) + " s", font=font, fill=255)
+                draw.text((x, top + 8), "Temperature: " + "{:.2f}".format(temperature) + " °C", font=font, fill=255)
+                draw.text((x, top + 16), "Humidity: " + "{:.2f}".format(humidity) + " %", font=font, fill=255)
+                draw.text((x, top + 25), "CO2: 400 PPM", font=font, fill=255)
+            else:
+                draw.text((x, top + 0), "Reading sensors...", font=font, fill=255)
 
         # Display image.
         display.image(image)
@@ -107,7 +127,10 @@ def getHumidity():
     else:
         return jsonify({"error": "Reading sensor failed"}), 500
 
-screenThread = threading.Thread(target=refreshOLED)
 sensorThreadDHT = threading.Thread(target=readSensorDHT)
+sensorThreadInteraction = threading.Thread(target=detectInteraction)
+screenThread = threading.Thread(target=refreshOLED)
+
 sensorThreadDHT.start()
+sensorThreadInteraction.start()
 screenThread.start()
