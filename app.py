@@ -12,6 +12,9 @@ import busio
 from PIL import Image, ImageDraw, ImageFont
 import adafruit_ssd1306
 
+# Required for MHZ-19
+import serial
+
 DHT_SENSOR_TYPE = Adafruit_DHT.AM2302
 DHT_SENSOR_PIN = 18
 DHT_SENSOR_READ_PAUSE = 15
@@ -20,9 +23,18 @@ INTERACTION_SENSOR_PIN = 17
 INTERACTION_SENSOR_PULL = GPIO.PUD_DOWN
 INTERACTION_SENSOR_DETECTION_EDGE = GPIO.FALLING
 INTERACTION_SENSOR_DEBOUNCE_TIME = 0.25
+MHZ_SENSOR_READ_PAUSE = 15
+SERIAL_PORT = "/dev/ttyS0"
+SERIAL_BAUDRATE = 9600
+SERIAL_BYTESIZE = serial.EIGHTBITS
+SERIAL_PARITY = serial.PARITY_NONE
+SERIAL_STOPBITS = serial.STOPBITS_ONE
+SERIAL_TIMEOUT = 1.0
+SERIAL_TRIES = 4
 
 app = Flask(__name__)
 readCache = None
+mhzCache = None
 displayEnabledTimestamp = time.time()
 
 def readSensorDHT():
@@ -35,6 +47,40 @@ def readSensorDHT():
         if humidity is not None and temperature is not None:
             readCache = (currentTime, humidity, temperature)
         time.sleep(DHT_SENSOR_READ_PAUSE)
+
+def readSensorMHZ():
+    global mhzCache
+    sensor = serial.Serial(SERIAL_PORT, baudrate=SERIAL_BAUDRATE, bytesize=SERIAL_BYTESIZE,
+            parity=SERIAL_PARITY, stopbits=SERIAL_STOPBITS, timeout=SERIAL_TIMEOUT)
+
+    while True:
+        value = None
+        fetchTime = None
+        for i in range(SERIAL_TRIES):
+            # Send read command to sensor & fetch result data
+            sensor.write(b"\xff\x01\x86\x00\x00\x00\x00\x00\x79")
+            data = sensor.read(9)
+            fetchTime = time.time()
+
+            # Extract information & validate result
+            startByte = data[0]
+            commandByte = data[1]
+            dataSum = sum(data[1:-1])
+            checksumCalculated = 0xff - (dataSum % 0x100) + 0x01
+            checksumAppended = data[8]
+            if len(data) == 9 and startByte == 0xff and commandByte == 0x86 and (checksumCalculated == checksumAppended):
+                # Fetching data was successful
+                valueHigh = data[2]
+                valueLow = data[3]
+                value = valueHigh * 256 + valueLow
+                break
+            else:
+                # Fetching data was not successful
+                continue
+
+        if value is not None:
+            mhzCache = (fetchTime, value)
+        time.sleep(MHZ_SENSOR_READ_PAUSE)
 
 def detectInteraction():
     global displayEnabledTimestamp
@@ -96,13 +142,14 @@ def refreshOLED():
         # Write four lines of text.
         currentTime = time.time()
         if (currentTime - displayEnabledTimestamp) < DISPLAY_ON_TIME:
-            if readCache is not None:
-                timestamp, humidity, temperature = readCache
-                dataAge = int(currentTime) - int(timestamp)
+            if readCache is not None and mhzCache is not None:
+                timestampDHT, humidity, temperature = readCache
+                timestampMHZ, co2 = mhzCache
+                dataAge = int(currentTime) - int(timestampDHT)
                 draw.text((x, top + 0), "Data Age: " + str(dataAge) + " s", font=font, fill=255)
                 draw.text((x, top + 8), "Temperature: " + "{:.2f}".format(temperature) + " °C", font=font, fill=255)
                 draw.text((x, top + 16), "Humidity: " + "{:.2f}".format(humidity) + " %", font=font, fill=255)
-                draw.text((x, top + 25), "CO2: 400 PPM", font=font, fill=255)
+                draw.text((x, top + 25), "CO2: " + str(co2) + " PPM", font=font, fill=255)
             else:
                 draw.text((x, top + 0), "Reading sensors...", font=font, fill=255)
 
@@ -128,9 +175,11 @@ def getHumidity():
         return jsonify({"error": "Reading sensor failed"}), 500
 
 sensorThreadDHT = threading.Thread(target=readSensorDHT)
+sensorThreadMHZ = threading.Thread(target=readSensorMHZ)
 sensorThreadInteraction = threading.Thread(target=detectInteraction)
 screenThread = threading.Thread(target=refreshOLED)
 
 sensorThreadDHT.start()
+sensorThreadMHZ.start()
 sensorThreadInteraction.start()
 screenThread.start()
