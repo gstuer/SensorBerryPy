@@ -14,6 +14,9 @@ import adafruit_ssd1306
 # Required for MHZ-19
 import serial
 
+# Required for data persistence
+import repository
+
 DHT_SENSOR_TYPE = Adafruit_DHT.AM2302
 DHT_SENSOR_PIN = 18
 DHT_SENSOR_READ_PAUSE = 15
@@ -30,6 +33,7 @@ SERIAL_PARITY = serial.PARITY_NONE
 SERIAL_STOPBITS = serial.STOPBITS_ONE
 SERIAL_TIMEOUT = 1.0
 SERIAL_TRIES = 4
+PERSISTENCE_WRITE_PAUSE = 60
 
 dhtCache = None
 mhzCache = None
@@ -156,12 +160,29 @@ def refreshOLED():
         display.show()
         time.sleep(0.1)
 
+def persistMeasurement():
+    repository.initialize()
+    while True:
+        # Fetch data that should be persisted
+        currentTime = time.time()
+        timestampDHT, humidity, temperature = dhtCache
+        timestampMHZ, co2 = mhzCache
+
+        # Create measurement & persist in repository
+        measurement = (currentTime, temperature, humidity, co2)
+        repository.persistMeasurement(measurement)
+
+        # Pause at least given time before next measurement gets persisted
+        time.sleep(PERSISTENCE_WRITE_PAUSE)
+
 sensorThreadDHT = threading.Thread(target=readSensorDHT)
 sensorThreadMHZ = threading.Thread(target=readSensorMHZ)
 sensorThreadInteraction = threading.Thread(target=detectInteraction)
 screenThread = threading.Thread(target=refreshOLED)
+persistenceThread = threading.Thread(target=persistMeasurement)
 
 sensorThreadDHT.start()
 sensorThreadMHZ.start()
 sensorThreadInteraction.start()
 screenThread.start()
+persistenceThread.start()
