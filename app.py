@@ -149,8 +149,8 @@ def refreshOLED():
                 timestampMHZ, co2 = mhzCache
                 dataAge = int(currentTime) - int(timestampDHT)
                 draw.text((x, top + 0), "Data Age: " + str(dataAge) + " s", font=font, fill=255)
-                draw.text((x, top + 8), "Temperature: " + "{:.2f}".format(temperature) + " °C", font=font, fill=255)
-                draw.text((x, top + 16), "Humidity: " + "{:.2f}".format(humidity) + " %", font=font, fill=255)
+                draw.text((x, top + 8), "Temperature: " + "{:.1f}".format(temperature) + " °C", font=font, fill=255)
+                draw.text((x, top + 16), "Humidity: " + "{:.1f}".format(humidity) + " %", font=font, fill=255)
                 draw.text((x, top + 25), "CO2: " + str(co2) + " PPM", font=font, fill=255)
             else:
                 draw.text((x, top + 0), "Reading sensors...", font=font, fill=255)
@@ -170,7 +170,7 @@ def persistMeasurement():
             timestampMHZ, co2 = mhzCache
 
             # Create measurement & persist in repository
-            measurement = (currentTime, temperature, humidity, co2)
+            measurement = (currentTime, round(temperature, 1), round(humidity, 1), co2)
             repository.persistMeasurement(measurement)
 
         # Pause at least given time before next measurement gets persisted
