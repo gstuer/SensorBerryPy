@@ -173,8 +173,8 @@ def persistMeasurement():
             measurement = (currentTime, temperature, humidity, co2)
             repository.persistMeasurement(measurement)
 
-            # Pause at least given time before next measurement gets persisted
-            time.sleep(PERSISTENCE_WRITE_PAUSE)
+        # Pause at least given time before next measurement gets persisted
+        time.sleep(PERSISTENCE_WRITE_PAUSE)
 
 sensorThreadDHT = threading.Thread(target=readSensorDHT)
 sensorThreadMHZ = threading.Thread(target=readSensorMHZ)
