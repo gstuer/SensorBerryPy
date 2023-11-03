@@ -176,14 +176,9 @@ def persistMeasurement():
         # Pause at least given time before next measurement gets persisted
         time.sleep(PERSISTENCE_WRITE_PAUSE)
 
-sensorThreadDHT = threading.Thread(target=readSensorDHT)
-sensorThreadMHZ = threading.Thread(target=readSensorMHZ)
-sensorThreadInteraction = threading.Thread(target=detectInteraction)
-screenThread = threading.Thread(target=refreshOLED)
-persistenceThread = threading.Thread(target=persistMeasurement)
-
-sensorThreadDHT.start()
-sensorThreadMHZ.start()
-sensorThreadInteraction.start()
-screenThread.start()
-persistenceThread.start()
+# Create and start threads
+threading.Thread(target=readSensorDHT).start()
+threading.Thread(target=readSensorMHZ).start()
+threading.Thread(target=detectInteraction).start()
+threading.Thread(target=refreshOLED).start()
+threading.Thread(target=persistMeasurement).start()
