@@ -1,4 +1,3 @@
-from flask import Flask, request, jsonify
 import time
 import threading
 import RPi.GPIO as GPIO
@@ -32,7 +31,6 @@ SERIAL_STOPBITS = serial.STOPBITS_ONE
 SERIAL_TIMEOUT = 1.0
 SERIAL_TRIES = 4
 
-app = Flask(__name__)
 dhtCache = None
 mhzCache = None
 displayEnabledTimestamp = time.time()
@@ -157,22 +155,6 @@ def refreshOLED():
         display.image(image)
         display.show()
         time.sleep(0.1)
-
-@app.route("/sensors/temperature", methods=["GET"])
-def getTemperature():
-    if dhtCache is not None:
-        timestamp, humidity, temperature = dhtCache
-        return jsonify({"value": temperature, "unit": "°C", "timestamp": timestamp}), 200
-    else:
-        return jsonify({"error": "Reading sensor failed"}), 500
-
-@app.route("/sensors/humidity", methods=["GET"])
-def getHumidity():
-    if dhtCache is not None:
-        timestamp, humidity, temperature = dhtCache
-        return jsonify({"value": humidity, "unit": "%RH", "timestamp": timestamp}), 200
-    else:
-        return jsonify({"error": "Reading sensor failed"}), 500
 
 sensorThreadDHT = threading.Thread(target=readSensorDHT)
 sensorThreadMHZ = threading.Thread(target=readSensorMHZ)
