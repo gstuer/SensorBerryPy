@@ -33,19 +33,19 @@ SERIAL_TIMEOUT = 1.0
 SERIAL_TRIES = 4
 
 app = Flask(__name__)
-readCache = None
+dhtCache = None
 mhzCache = None
 displayEnabledTimestamp = time.time()
 
 def readSensorDHT():
-    global readCache
+    global dhtCache
     while True:
         currentTime = time.time()
         humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR_TYPE, DHT_SENSOR_PIN)
         # Reading the sensor may take a couple of seconds -> Time needs to be refreshed.
         currentTime = time.time()
         if humidity is not None and temperature is not None:
-            readCache = (currentTime, humidity, temperature)
+            dhtCache = (currentTime, humidity, temperature)
         time.sleep(DHT_SENSOR_READ_PAUSE)
 
 def readSensorMHZ():
@@ -98,7 +98,7 @@ def refreshOLED():
     # SPDX-FileCopyrightText: 2017 James DeVito for Adafruit Industries
     # SPDX-License-Identifier: MIT
 
-    global readCache
+    global dhtCache
     global displayEnabledTimestamp
 
     # Create the I2C interface.
@@ -142,8 +142,8 @@ def refreshOLED():
         # Write four lines of text.
         currentTime = time.time()
         if (currentTime - displayEnabledTimestamp) < DISPLAY_ON_TIME:
-            if readCache is not None and mhzCache is not None:
-                timestampDHT, humidity, temperature = readCache
+            if dhtCache is not None and mhzCache is not None:
+                timestampDHT, humidity, temperature = dhtCache
                 timestampMHZ, co2 = mhzCache
                 dataAge = int(currentTime) - int(timestampDHT)
                 draw.text((x, top + 0), "Data Age: " + str(dataAge) + " s", font=font, fill=255)
@@ -160,16 +160,16 @@ def refreshOLED():
 
 @app.route("/sensors/temperature", methods=["GET"])
 def getTemperature():
-    if readCache is not None:
-        timestamp, humidity, temperature = readCache
+    if dhtCache is not None:
+        timestamp, humidity, temperature = dhtCache
         return jsonify({"value": temperature, "unit": "°C", "timestamp": timestamp}), 200
     else:
         return jsonify({"error": "Reading sensor failed"}), 500
 
 @app.route("/sensors/humidity", methods=["GET"])
 def getHumidity():
-    if readCache is not None:
-        timestamp, humidity, temperature = readCache
+    if dhtCache is not None:
+        timestamp, humidity, temperature = dhtCache
         return jsonify({"value": humidity, "unit": "%RH", "timestamp": timestamp}), 200
     else:
         return jsonify({"error": "Reading sensor failed"}), 500
