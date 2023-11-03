@@ -15,7 +15,7 @@ import adafruit_ssd1306
 import serial
 
 # Required for data persistence
-import repository
+from repository import Repository
 
 DHT_SENSOR_TYPE = Adafruit_DHT.AM2302
 DHT_SENSOR_PIN = 18
@@ -161,7 +161,7 @@ def refreshOLED():
         time.sleep(0.1)
 
 def persistMeasurement():
-    repository.initialize()
+    repository = Repository()
     while True:
         if dhtCache is not None and mhzCache is not None:
             # Fetch data that should be persisted
