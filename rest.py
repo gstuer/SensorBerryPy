@@ -1,7 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from repository import Repository
 
 app = Flask(__name__)
+
+@app.route("/", methods=["GET"])
+def getIndex():
+    return render_template("index.html")
 
 @app.route("/measurements", methods=["GET"])
 def getMeasurements():
