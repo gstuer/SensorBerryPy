@@ -163,17 +163,18 @@ def refreshOLED():
 def persistMeasurement():
     repository.initialize()
     while True:
-        # Fetch data that should be persisted
-        currentTime = time.time()
-        timestampDHT, humidity, temperature = dhtCache
-        timestampMHZ, co2 = mhzCache
+        if dhtCache is not None and mhzCache is not None:
+            # Fetch data that should be persisted
+            currentTime = time.time()
+            timestampDHT, humidity, temperature = dhtCache
+            timestampMHZ, co2 = mhzCache
 
-        # Create measurement & persist in repository
-        measurement = (currentTime, temperature, humidity, co2)
-        repository.persistMeasurement(measurement)
+            # Create measurement & persist in repository
+            measurement = (currentTime, temperature, humidity, co2)
+            repository.persistMeasurement(measurement)
 
-        # Pause at least given time before next measurement gets persisted
-        time.sleep(PERSISTENCE_WRITE_PAUSE)
+            # Pause at least given time before next measurement gets persisted
+            time.sleep(PERSISTENCE_WRITE_PAUSE)
 
 sensorThreadDHT = threading.Thread(target=readSensorDHT)
 sensorThreadMHZ = threading.Thread(target=readSensorMHZ)
