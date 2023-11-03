@@ -20,13 +20,13 @@ def initialize():
         carbon_dioxide REAL
     );""")
 
-def save(measurement):
+def persistMeasurement(measurement):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("INSERT INTO measurements (timestamp, temperature, humidity, carbon_dioxide) VALUES (?, ?, ?, ?);", measurement)
     connection.commit()
 
-def findWithMaxAge(seconds):
+def findMeasurementsWithMaxAge(seconds):
     connection = connect()
     cursor = connection.cursor()
     maxAgeTimestamp = time.time() - seconds
