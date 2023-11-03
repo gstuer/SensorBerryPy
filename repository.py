@@ -27,6 +27,6 @@ class Repository:
 
     def findMeasurementsWithMaxAge(self, seconds):
         cursor = self.connection.cursor()
-        maxAgeTimestamp = time.time() - seconds
+        maxAgeTimestamp = time.time() - float(seconds)
         cursor.execute(f'SELECT timestamp, temperature, humidity, carbon_dioxide FROM measurements WHERE timestamp >= {maxAgeTimestamp};')
         return cursor.fetchall()
