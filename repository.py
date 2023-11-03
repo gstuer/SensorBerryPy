@@ -26,6 +26,12 @@ def persistMeasurement(measurement):
     cursor.execute("INSERT INTO measurements (timestamp, temperature, humidity, carbon_dioxide) VALUES (?, ?, ?, ?);", measurement)
     connection.commit()
 
+def findMeasurements():
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT timestamp, temperature, humidity, carbon_dioxide FROM measurements;")
+    return cursor.fetchall()
+
 def findMeasurementsWithMaxAge(seconds):
     connection = connect()
     cursor = connection.cursor()
