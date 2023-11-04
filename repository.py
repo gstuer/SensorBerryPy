@@ -1,8 +1,10 @@
 import time
+import os
 import sqlite3
 
 class Repository:
-    def __init__(self, file = "./data.db"):
+    REPOSITORY_FILE_DEFAULT = os.path.join(os.path.dirname(__file__), "data.db")
+    def __init__(self, file = REPOSITORY_FILE_DEFAULT):
         # Open connection to database
         self.connection = sqlite3.connect(file)
 
