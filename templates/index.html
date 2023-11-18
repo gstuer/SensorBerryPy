@@ -21,6 +21,27 @@
             }).responseText;
         var jsonData = JSON.parse(rawData);
 
+        // Fill grid items of different measurement types
+        var types = ["temperature", "humidity", "carbon_dioxide"];
+        var units = {"temperature": "&#176;C", "humidity": "%", "carbon_dioxide": "PPM"}
+        types.forEach(type => {
+          // Fetch elements from document by class or identifier
+          var gridItem = document.getElementById(type.concat("-item"));
+          var currentField = gridItem.getElementsByClassName("grid-item-current")[0];
+          var meanField = gridItem.getElementsByClassName("grid-item-mean")[0];
+          var maxField = gridItem.getElementsByClassName("grid-item-max")[0];
+          var minField = gridItem.getElementsByClassName("grid-item-min")[0];
+
+          // Get type-specific data from json data
+          var aggregates = jsonData.aggregates[type];
+
+          // Fill fields with data
+          currentField.innerHTML = String(jsonData.measurements.at(-1)[type]).concat(units[type]);
+          meanField.innerHTML = "&#8709; ".concat(parseFloat(aggregates.mean_arithmetic).toFixed(2));
+          maxField.innerHTML = "min ".concat(parseFloat(aggregates.maximum).toFixed(2));
+          minField.innerHTML = "max ".concat(parseFloat(aggregates.minimum).toFixed(2));
+        });
+
         // Create data tables out of JSON data for different charts.
         var temperatureData = new google.visualization.DataTable();
         temperatureData.addColumn("datetime", "Time of Day");
@@ -82,12 +103,105 @@
       }
     </script>
     <style>
+      .grid-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: auto;
+        gap: 1rem 1rem;
+        color: #757575;
+      }
+
+      @media screen and (max-width: 1200px) {
+        .grid-container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .grid-item {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: auto;
+        grid-template-areas:
+          "header header current"
+          "mean max min";
+        gap: 1rem 1rem;
+        background-color: rgb(238, 238, 238);
+        padding: 0.75rem;
+      }
+
+      .grid-item-header {
+        grid-area: header;
+      }
+
+      .grid-item-header .header {
+        display: block;
+      }
+
+      .grid-item-header .subheader {
+        display: block;
+        color: #a1a1a1;
+        font-size: 0.85em;
+      }
+
+      .grid-item-current {
+        grid-area: current;
+        text-align: right;
+        font-size: 1.85rem;
+      }
+
+      .grid-item-mean {
+        grid-area: mean;
+        text-align: left;
+      }
+
+      .grid-item-max {
+        grid-area: max;
+        text-align: center;
+      }
+
+      .grid-item-min {
+        grid-area: min;
+        text-align: right;
+      }
+
       .chart_div {
         width: 100%;
       }
     </style>
   </head>
   <body>
+    <div class="grid-container">
+      <div class="grid-item" id="temperature-item">
+        <div class="grid-item-header">
+          <span class="header">Temperature</span>
+          <span class="subheader">last 24h</span>
+        </div>
+        <div class="grid-item-current"></div>
+        <div class="grid-item-mean"></div>
+        <div class="grid-item-max"></div>
+        <div class="grid-item-min"></div>
+      </div>
+      <div class="grid-item" id="humidity-item">
+        <div class="grid-item-header">
+          <span class="header">Humidity</span>
+          <span class="subheader">last 24h</span>
+        </div>
+        <div class="grid-item-current"></div>
+        <div class="grid-item-mean"></div>
+        <div class="grid-item-max"></div>
+        <div class="grid-item-min"></div>
+      </div>
+      <div class="grid-item" id="carbon_dioxide-item">
+        <div class="grid-item-header">
+          <span class="header">Carbon Dioxide</span>
+          <span class="subheader">last 24h</span>
+        </div>
+        <div class="grid-item-current"></div>
+        <div class="grid-item-mean"></div>
+        <div class="grid-item-max"></div>
+        <div class="grid-item-min"></div>
+      </div>
+    </div>
     <div id="chart_div_temperature" class="chart_div"></div>
     <div id="chart_div_humidity" class="chart_div"></div>
     <div id="chart_div_carbon_dioxide" class="chart_div"></div>
