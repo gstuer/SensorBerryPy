@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 from repository import Repository
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 @app.route("/", methods=["GET"])
 def getIndex():
