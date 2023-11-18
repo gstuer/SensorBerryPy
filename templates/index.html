@@ -23,7 +23,7 @@
 
         // Fill grid items of different measurement types
         var types = ["temperature", "humidity", "carbon_dioxide"];
-        var units = {"temperature": "&#176;C", "humidity": "%", "carbon_dioxide": "PPM"}
+        var units = {"temperature": "&#176;C", "humidity": "%", "carbon_dioxide": "ppm"}
         types.forEach(type => {
           // Fetch elements from document by class or identifier
           var gridItem = document.getElementById(type.concat("-item"));
@@ -38,8 +38,8 @@
           // Fill fields with data
           currentField.innerHTML = String(jsonData.measurements.at(-1)[type]).concat(units[type]);
           meanField.innerHTML = "&#8709; ".concat(parseFloat(aggregates.mean_arithmetic).toFixed(2));
-          maxField.innerHTML = "min ".concat(parseFloat(aggregates.maximum).toFixed(2));
-          minField.innerHTML = "max ".concat(parseFloat(aggregates.minimum).toFixed(2));
+          maxField.innerHTML = "max ".concat(parseFloat(aggregates.maximum).toFixed(2));
+          minField.innerHTML = "min ".concat(parseFloat(aggregates.minimum).toFixed(2));
         });
 
         // Create data tables out of JSON data for different charts.
