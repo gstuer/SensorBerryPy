@@ -27,8 +27,19 @@ class Repository:
         cursor.execute("SELECT timestamp, temperature, humidity, carbon_dioxide FROM measurements;")
         return cursor.fetchall()
 
-    def findMeasurementsWithMaxAge(self, seconds):
+    def findMeasurementsWithAge(self, minimum: float, maximum: float):
         cursor = self.connection.cursor()
-        maxAgeTimestamp = time.time() - float(seconds)
-        cursor.execute(f'SELECT timestamp, temperature, humidity, carbon_dioxide FROM measurements WHERE timestamp >= {maxAgeTimestamp};')
+        currentTime = time.time()
+
+        if maximum is None or maximum > currentTime:
+            maxAgeTimestamp = 0
+        else:
+            maxAgeTimestamp = currentTime - maximum
+
+        if minimum is None or minimum < 0:
+            minAgeTimestamp = currentTime
+        else:
+            minAgeTimestamp = currentTime - minimum
+
+        cursor.execute(f'SELECT timestamp, temperature, humidity, carbon_dioxide FROM measurements WHERE timestamp >= {maxAgeTimestamp} AND timestamp <= {minAgeTimestamp};')
         return cursor.fetchall()

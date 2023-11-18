@@ -11,12 +11,9 @@ def getIndex():
 @app.route("/measurements", methods=["GET"])
 def getMeasurements():
     repository = Repository()
-    maxAge = request.args.get("max_age")
-    if maxAge is not None:
-        # TODO Check whether type maxAge is valid (eg. int)
-        rows = repository.findMeasurementsWithMaxAge(maxAge)
-    else:
-        rows = repository.findMeasurements()
+    maxAge = float(request.args.get("max_age")) if request.args.get("max_age") is not None else None
+    minAge = float(request.args.get("min_age")) if request.args.get("min_age") is not None else None
+    rows = repository.findMeasurementsWithAge(minimum = minAge, maximum = maxAge)
 
     # Add rows as dictionary to List
     measurements = list()
