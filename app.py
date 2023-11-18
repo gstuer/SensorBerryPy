@@ -95,11 +95,9 @@ def detectInteraction():
             displayEnabledTimestamp = time.time()
         time.sleep(INTERACTION_SENSOR_DEBOUNCE_TIME)
 
+# Based on snippets from https://github.com/adafruit/Adafruit_CircuitPython_SSD1306
+# MIT License: https://github.com/adafruit/Adafruit_CircuitPython_SSD1306/blob/500ec2cbd2f7758a10efb1c54c536c38fd36a851/LICENSE
 def refreshOLED():
-    # SPDX-FileCopyrightText: 2017 Tony DiCola for Adafruit Industries
-    # SPDX-FileCopyrightText: 2017 James DeVito for Adafruit Industries
-    # SPDX-License-Identifier: MIT
-
     global dhtCache
     global displayEnabledTimestamp
 
