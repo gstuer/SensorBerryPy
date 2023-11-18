@@ -25,17 +25,17 @@
         var temperatureData = new google.visualization.DataTable();
         temperatureData.addColumn("datetime", "Time of Day");
         temperatureData.addColumn("number", "Temperature");
-        jsonData.forEach((element) => temperatureData.addRow([new Date(element.timestamp * 1000), element.temperature]))
+        jsonData.measurements.forEach((element) => temperatureData.addRow([new Date(element.timestamp * 1000), element.temperature]))
 
         var humidityData = new google.visualization.DataTable();
         humidityData.addColumn("datetime", "Time of Day");
         humidityData.addColumn("number", "Humidity");
-        jsonData.forEach((element) => humidityData.addRow([new Date(element.timestamp * 1000), element.humidity]))
+        jsonData.measurements.forEach((element) => humidityData.addRow([new Date(element.timestamp * 1000), element.humidity]))
 
         var co2Data = new google.visualization.DataTable();
         co2Data.addColumn("datetime", "Time of Day");
         co2Data.addColumn("number", "CO2");
-        jsonData.forEach((element) => co2Data.addRow([new Date(element.timestamp * 1000), element.carbon_dioxide]))
+        jsonData.measurements.forEach((element) => co2Data.addRow([new Date(element.timestamp * 1000), element.carbon_dioxide]))
 
         // Call draw functions for charts
         drawChartTemperature(temperatureData);
