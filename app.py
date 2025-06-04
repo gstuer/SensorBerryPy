@@ -5,8 +5,8 @@ import adafruit_scd30
 # Required for data persistence
 from repository import Repository
 
-# 60 / 3 = 20 measurements per minute
-PERSISTENCE_WRITE_PAUSE = 3
+# 60 / 15 = 4 measurements per minute
+PERSISTENCE_WRITE_PAUSE = 15
 
 i2c = busio.I2C(board.SCL, board.SDA, frequency=50000)
 scd = adafruit_scd30.SCD30(i2c)
