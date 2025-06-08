@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SensorBerryHub</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript">
+      function updateRoom(identifier, data) {
+        // Round values
+        let temperature = Math.round(data.aggregates.temperature.mean_arithmetic * 10) / 10;
+        let humidity = Math.round(data.aggregates.humidity.mean_arithmetic * 10) / 10;
+        let carbon = Math.round(data.aggregates.carbon_dioxide.mean_arithmetic);
+
+        // Replace currently shown values
+        let identifierClass = "." + identifier;
+        document.querySelector(identifierClass + " .temperature .value").innerHTML = temperature;
+        document.querySelector(identifierClass + " .humidity .value").innerHTML = humidity;
+        document.querySelector(identifierClass + " .carbon .value").innerHTML = carbon;
+      }
+
+      function clearRoom(identifier) {
+        // Replace currently shown values
+        let identifierClass = "." + identifier;
+        document.querySelector(identifierClass + " .temperature .value").innerHTML = "n.a.";
+        document.querySelector(identifierClass + " .humidity .value").innerHTML = "n.a.";
+        document.querySelector(identifierClass + " .carbon .value").innerHTML = "n.a.";
+      }
+
+      function fetchSensorBerry(hostname, identifier) {
+        $.get({
+          url: "http://" + hostname + "/measurements?max_age=30",
+          dataType: "json",
+          crossDomain: true,
+          success: (data, status) => {
+            updateRoom(identifier, data);
+          },
+          error: (jqXHR, status, errorThrown) => clearRoom(identifier)
+        });
+      }
+
+      setInterval(() => fetchSensorBerry("raspberrypi", "living"), 10000);
+      setInterval(() => fetchSensorBerry("blueberry", "bed"), 10000);
+      setInterval(() => fetchSensorBerry("blackberry", "office"), 10000);
+    </script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: sans-serif;
+      }
+
+      body {
+        background-color: #fff;
+        color: #000;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        padding: 24px;
+        height: 720px;
+        width: 1280px;
+        overflow: hidden;
+      }
+
+      .device {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+      }
+
+      .divider {
+        width: 2px;
+        height: 70%;
+        background-color: #000;
+        margin: 0 24px;
+      }
+
+      .room-name {
+        font-weight: 600;
+        font-size: 3.0rem;
+        margin-bottom: 8px;
+      }
+
+      .device-name {
+        font-size: 2.0rem;
+        color: #555;
+        margin-bottom: 48px;
+      }
+
+      .reading {
+        display: flex;
+        align-items: center;
+        margin: 16px 0;
+        font-size: 3rem;
+      }
+
+      .reading i {
+        font-size: 3rem;
+        margin-right: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device living">
+      <div class="room-name">Living Room</div>
+      <div class="device-name">Raspberry</div>
+      <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
+      <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
+      <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
+    </div>
+    <div class="divider"></div>
+    <div class="device bed">
+      <div class="room-name">Bedroom</div>
+      <div class="device-name">Blueberry</div>
+      <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
+      <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
+      <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
+    </div>
+    <div class="divider"></div>
+    <div class="device office">
+      <div class="room-name">Office</div>
+      <div class="device-name">Blackberry</div>
+      <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
+      <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
+      <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
+    </div>
+  </body>
+</html>
