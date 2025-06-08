@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import cross_origin
 from repository import Repository
 from statistics import fmean
 
@@ -10,6 +11,7 @@ def getIndex():
     return render_template("index.html")
 
 @app.route("/measurements", methods=["GET"])
+@cross_origin()
 def getMeasurements():
     # Get request arguments from url
     maxAge = float(request.args.get("max_age")) if request.args.get("max_age") is not None else None
