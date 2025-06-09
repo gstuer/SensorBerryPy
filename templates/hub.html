@@ -46,25 +46,270 @@
       setInterval(() => fetchSensorBerry("blackberry", "office"), 10000);
     </script>
 
+    <script>
+      function updateClocks() {
+        const now = new Date().toLocaleTimeString("de-DE");
+        const clocks = document.getElementsByClassName("clock");
+        for (let clock of clocks) {
+          clock.textContent = now;
+        }
+      }
+      setInterval(updateClocks, 1000);
+      updateClocks();
+    </script>
+
+    <script>
+      function fetchCurrentWeather(lat, lon, identifier) {
+        let position = `lat=${lat}&lon=${lon}`;
+        $.get({
+          url: `https://api.brightsky.dev/current_weather?${position}&tz=Europe/Berlin`,
+          dataType: "json",
+          crossDomain: true,
+          success: (data, status) => {
+            updateCurrentWeather(identifier, data);
+          },
+          error: (jqXHR, status, errorThrown) => console.log(errorThrown)
+        });
+      }
+
+      function fetchCalendarDayForecast(lat, lon, identifier) {
+        let position = `lat=${lat}&lon=${lon}`;
+        let now = new Date();
+
+        // Get month and day in correct format
+        var month = new String(now.getMonth() + 1);
+        month = month.length < 2 ? "0" + month : month;
+        var day = new String(now.getDate());
+        day = day.length < 2 ? "0" + day : day;
+
+        // Fetch forcast for the current calendar day
+        $.get({
+          url: `https://api.brightsky.dev/weather?${position}&date=${now.getFullYear()}-${month}-${day}&tz=Europe/Berlin`,
+          dataType: "json",
+          crossDomain: true,
+          success: (data, status) => {
+            updateCalendarDayForecast(identifier, data);
+          },
+          error: (jqXHR, status, errorThrown) => console.log(errorThrown)
+        });
+      }
+
+      function fetch24hForecast(lat, lon, identifier) {
+        let position = `lat=${lat}&lon=${lon}`;
+        let isoDate = new Date().toISOString();
+        // Fetch forcast for the next 24h hour based on current time
+        $.get({
+          url: `https://api.brightsky.dev/weather?${position}&date=${isoDate}&tz=Europe/Berlin`,
+          dataType: "json",
+          crossDomain: true,
+          success: (data, status) => {
+            update24hForecast(identifier, data);
+          },
+          error: (jqXHR, status, errorThrown) => console.log(errorThrown)
+        });
+
+        // Set timout to next full hour
+        setTimeout(() => fetch24hForecast(lat, lon, identifier), getMillisecondsToNextFullHour(new Date()));
+      }
+
+      function updateCurrentWeather(identifier, data) {
+        const weather = data.weather;
+        const icon = getIconByName(weather.icon);
+        const identifierClass = "." + identifier;
+        document.querySelector(identifierClass + " .temperature .value").innerHTML = weather.temperature;
+        document.querySelector(identifierClass + " .humidity .value").innerHTML = weather.relative_humidity;
+        document.querySelector(identifierClass + " .weather-icon").innerHTML = icon;
+      }
+
+      function updateCalendarDayForecast(identifier, data) {
+        // Get max/min forecast value for today, i.e., the current calendar day.
+        const weather = data.weather;
+        var temperatures = [];
+        weather.forEach(item => {
+          temperatures.push(item.temperature);
+        });
+
+        const identifierClass = "." + identifier;
+        document.querySelector(identifierClass + " .temperature_max .value").innerHTML = Math.max(...temperatures);
+        document.querySelector(identifierClass + " .temperature_min .value").innerHTML = Math.min(...temperatures);
+      }
+
+      function update24hForecast(identifier, data) {
+        // Get forecast values for the next 24h.
+        const weather = data.weather;
+
+        // Get forecast for +1, +5, +9 hours
+        const weather_1h = weather[0];
+        const weather_5h = weather[4];
+        const weather_9h = weather[9];
+
+        // Update html document: Left forecast
+        const identifierClass = "." + identifier;
+        document.querySelector(identifierClass + " .left-forecast .forecast-icon").innerHTML = getIconByName(weather_1h.icon);
+        document.querySelector(identifierClass + " .left-forecast .forecast-time").innerHTML = getHourMinuteString(new Date(weather_1h.timestamp));
+        document.querySelector(identifierClass + " .left-forecast .forecast-temperature .value").innerHTML = weather_1h.temperature;
+        document.querySelector(identifierClass + " .left-forecast .forecast-precipitation .value").innerHTML = weather_1h.precipitation_probability;
+
+        // Update html document: Center forecast
+        document.querySelector(identifierClass + " .center-forecast .forecast-icon").innerHTML = getIconByName(weather_5h.icon);
+        document.querySelector(identifierClass + " .center-forecast .forecast-time").innerHTML = getHourMinuteString(new Date(weather_5h.timestamp));
+        document.querySelector(identifierClass + " .center-forecast .forecast-temperature .value").innerHTML = weather_5h.temperature;
+        document.querySelector(identifierClass + " .center-forecast .forecast-precipitation .value").innerHTML = weather_5h.precipitation_probability;
+
+        // Update html document: Right forecast
+        document.querySelector(identifierClass + " .right-forecast .forecast-icon").innerHTML = getIconByName(weather_9h.icon);
+        document.querySelector(identifierClass + " .right-forecast .forecast-time").innerHTML = getHourMinuteString(new Date(weather_9h.timestamp));
+        document.querySelector(identifierClass + " .right-forecast .forecast-temperature .value").innerHTML = weather_9h.temperature;
+        document.querySelector(identifierClass + " .right-forecast .forecast-precipitation .value").innerHTML = weather_9h.precipitation_probability;
+
+        // Get next available 6h preciptiation probability
+        precipitation_6h = "n.a.";
+        for (i = 0; i < weather.length; i++) {
+          const forecast = weather[i];
+          if (forecast.precipitation_probability_6h) {
+            precipitation_6h = forecast.precipitation_probability_6h;
+            break;
+          }
+        }
+        document.querySelector(identifierClass + " .precipitation .value").innerHTML = precipitation_6h;
+      }
+
+      function getIconByName(iconName) {
+        var icon = null;
+        switch (iconName) {
+          case "clear-day":
+            icon = '<i class="bi bi-sun">';
+            break;
+          case "clear-night":
+            icon = '<i class="bi bi-moon">';
+            break;
+          case "partly-cloudy-day":
+            icon = '<i class="bi bi-cloud-sun">';
+            break;
+          case "partly-cloudy-night":
+            icon = '<i class="bi bi-cloud-moon">';
+            break;
+          case "cloudy":
+            icon = '<i class="bi bi-cloud">';
+            break;
+          case "fog":
+            icon = '<i class="bi bi-cloud-fog">';
+            break;
+          case "wind":
+            icon = '<i class="bi bi-wind">';
+            break;
+          case "rain":
+            icon = '<i class="bi bi-cloud-rain">';
+            break;
+          case "sleet":
+            icon = '<i class="bi bi-cloud-sleet">';
+            break;
+          case "snow":
+            icon = '<i class="bi bi-cloud-snow">';
+            break;
+          case "hail":
+            icon = '<i class="bi bi-cloud-hail">';
+            break;
+          case "thunderstorm":
+            icon = '<i class="bi bi-cloud-lightning-rain">';
+            break;
+          default:
+            icon = '<i class="bi bi-question-circle">';
+            break;
+        }
+        return icon;
+      }
+
+      function getHourMinuteString(date) {
+        var hours = new String(date.getHours());
+        hours = hours.length < 2 ? "0" + hours : hours;
+        var minutes = new String(date.getMinutes());
+        minutes = minutes.length < 2 ? "0" + minutes : minutes;
+        return `${hours}:${minutes}`;
+      }
+
+      function getMillisecondsToNextFullHour(date) {
+        return 3600000 - date.getTime() % 3600000;
+      }
+
+      // Update current weather every 10 minutes
+      setInterval(() => fetchCurrentWeather(48.53, 9.05, "tuebingen"), 10 * 60 * 1000);
+      setInterval(() => fetchCurrentWeather(49.00, 8.39, "karlsruhe"), 10 * 60 * 1000);
+      fetchCurrentWeather(48.53, 9.07, "tuebingen");
+      fetchCurrentWeather(49.10, 8.43, "karlsruhe");
+
+      // Update forecast for current calendar day every half an hour
+      setInterval(() => fetchCalendarDayForecast(48.53, 9.07, "tuebingen"), 30 * 60 * 1000);
+      setInterval(() => fetchCalendarDayForecast(49.10, 8.43, "karlsruhe"), 30 * 60 * 1000);
+      fetchCalendarDayForecast(48.53, 9.07, "tuebingen");
+      fetchCalendarDayForecast(49.10, 8.43, "karlsruhe");
+
+      // Update forecast for next 24h at every full hour
+      fetch24hForecast(48.53, 9.07, "tuebingen");
+      fetch24hForecast(49.10, 8.43, "karlsruhe");
+    </script>
+
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
         font-family: sans-serif;
+        }
+
+        body, html {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
       }
 
-      body {
-        background-color: #fff;
-        color: #000;
+      .carousel {
         display: flex;
-        flex-direction: row;
+        width: auto;
+        height: 100vh;
+        transition: transform 0.3s ease;
+        touch-action: pan-y;
+      }
+
+      .page {
+        width: 100vw;
+        height: 100vh;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 32px;
+        font-size: 2.0rem;
+        border-bottom: 1px solid #ccc;
+      }
+
+      .nav {
+        display: flex;
+        gap: 20px;
+      }
+
+      .nav-item {
+        color: #aaa;
+        font-size: 1.5rem;
+      }
+
+      .nav-item.active {
+        color: #000;
+        font-size: 2.0rem;
+        font-weight: bold;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
         justify-content: space-around;
         align-items: center;
         padding: 24px;
-        height: 720px;
-        width: 1280px;
-        overflow: hidden;
       }
 
       .device {
@@ -76,7 +321,7 @@
 
       .divider {
         width: 2px;
-        height: 70%;
+        height: 80%;
         background-color: #000;
         margin: 0 24px;
       }
@@ -104,31 +349,201 @@
         font-size: 3rem;
         margin-right: 12px;
       }
+
+      .weather {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+      }
+
+      .weather h2 {
+        font-size: 2.5rem;
+      }
+
+      .forecast {
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+        margin-top: 2rem;
+        border-top: 1px solid #ccc;
+      }
+
+      .forecast-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 2rem;
+      }
+
+      .forecast-item i {
+        font-size: 3.5rem;
+      }
+
+      .forecast-reading {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-evenly;
+        column-gap: 0.5rem;
+        font-size: 2.0rem;
+      }
+
+      .forecast-reading i {
+        margin: 0;
+        font-size: 2.0rem;
+      }
+
+      .weather-column {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .weather-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        column-gap: 4rem;
+      }
+
+      .weather-icon {
+        font-size: 7rem;
+        align-self: center;
+      }
+
+      .sub_reading {
+        display: flex;
+        font-size: 2rem;
+      }
+
+      .sub_reading i {
+        margin-right: 12px;
+      }
     </style>
   </head>
   <body>
-    <div class="device living">
-      <div class="room-name">Living Room</div>
-      <div class="device-name">Raspberry</div>
-      <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
-      <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
-      <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
+    <div id="carousel" class="carousel">
+      <!-- Sensor Page -->
+      <div class="page">
+        <div class="header">
+          <div class="nav">
+            <span class="nav-item active">Sensors</span>
+            <span class="nav-item">Weather</span>
+          </div>
+          <div class="clock">--:--:--</div>
+        </div>
+        <div class="content">
+          <div class="device living">
+            <div class="room-name">Living Room</div>
+            <div class="device-name">Raspberry</div>
+            <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
+            <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
+            <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
+          </div>
+          <div class="divider"></div>
+          <div class="device bed">
+            <div class="room-name">Bedroom</div>
+            <div class="device-name">Blueberry</div>
+            <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
+            <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
+            <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
+          </div>
+          <div class="divider"></div>
+          <div class="device office">
+            <div class="room-name">Office</div>
+            <div class="device-name">Blackberry</div>
+            <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
+            <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
+            <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weather Page -->
+      <div class="page">
+        <div class="header">
+          <div class="nav">
+            <span class="nav-item">Sensors</span>
+            <span class="nav-item active">Weather</span>
+          </div>
+          <div class="clock">--:--:--</div>
+        </div>
+        <div class="content">
+          <div class="weather tuebingen">
+            <div class="weather-column">
+              <div class="weather-row">
+                <div class="weather-column">
+                  <h2>Tübingen</h2>
+                  <div class="reading temperature"><span class="value">n.a</span>&nbsp;°C</i></div>
+                </div>
+                <span class="weather-icon"><i class="bi bi-question-circle"></i></span>
+              </div>
+              <div class="weather-row">
+                <div class="weather-column">
+                  <div class="sub_reading temperature_max"><i class="bi bi-arrow-up"></i><span class="value">n.a</span>&nbsp;°C</div>
+                  <div class="sub_reading temperature_min"><i class="bi bi-arrow-down"></i><span class="value">n.a</span>&nbsp;°C</div>
+                </div>
+                <div class="weather-column">
+                  <div class="sub_reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
+                  <div class="sub_reading precipitation"><i class="bi bi-cloud-drizzle"></i><span class="value">n.a</span>&nbsp;%</div>
+                </div>
+              </div>
+            </div>
+            <div class="forecast">
+              <div class="forecast-item left-forecast">
+                <span class="forecast-icon"><i class="bi bi-question-circle"></i></span>
+                <div class="forecast-reading forecast-time">n.a.</div>
+                <div class="forecast-reading forecast-temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>°C</div>
+                <div class="forecast-reading forecast-precipitation"><i class="bi bi-cloud-drizzle"></i><span class="value">n.a</span>%</div>
+              </div>
+              <div class="forecast-item center-forecast">
+                <span class="forecast-icon"><i class="bi bi-question-circle"></i></span>
+                <div class="forecast-reading forecast-time">n.a.</div>
+                <div class="forecast-reading forecast-temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>°C</div>
+                <div class="forecast-reading forecast-precipitation"><i class="bi bi-cloud-drizzle"></i><span class="value">n.a</span>%</div>
+              </div>
+              <div class="forecast-item right-forecast">
+                <span class="forecast-icon"><i class="bi bi-question-circle"></i></span>
+                <div class="forecast-reading forecast-time">n.a.</div>
+                <div class="forecast-reading forecast-temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>°C</div>
+                <div class="forecast-reading forecast-precipitation"><i class="bi bi-cloud-drizzle"></i><span class="value">n.a</span>%</div>
+              </div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="weather karlsruhe"></div>
+          <script>
+            document.querySelector(".weather.karlsruhe").innerHTML = document.querySelector(".weather.tuebingen").innerHTML;
+            document.querySelector(".weather.karlsruhe h2").textContent = "Karlsruhe";
+          </script>
+        </div>
+      </div>
     </div>
-    <div class="divider"></div>
-    <div class="device bed">
-      <div class="room-name">Bedroom</div>
-      <div class="device-name">Blueberry</div>
-      <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
-      <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
-      <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
-    </div>
-    <div class="divider"></div>
-    <div class="device office">
-      <div class="room-name">Office</div>
-      <div class="device-name">Blackberry</div>
-      <div class="reading temperature"><i class="bi bi-thermometer-half"></i><span class="value">n.a</span>&nbsp;°C</div>
-      <div class="reading humidity"><i class="bi bi-droplet"></i><span class="value">n.a</span>&nbsp;%</div>
-      <div class="reading carbon"><i class="bi bi-wind"></i><span class="value">n.a</span>&nbsp;ppm</div>
-    </div>
+
+    <script>
+      let startX;
+      let currentIndex = 0;
+      const carousel = document.getElementById('carousel');
+      const totalPages = document.getElementsByClassName("page").length;
+
+      carousel.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+      });
+
+      carousel.addEventListener('touchend', (e) => {
+        const endX = e.changedTouches[0].clientX;
+        const diffX = startX - endX;
+
+        if (Math.abs(diffX) > 50) {
+          if (diffX > 0) {
+            currentIndex = (currentIndex + 1) % totalPages;
+          } else {
+            currentIndex = (currentIndex - 1 + totalPages) % totalPages;
+          }
+          carousel.style.transform = `translateX(-${currentIndex * 100}vw)`;
+        }
+      });
+    </script>
   </body>
 </html>
