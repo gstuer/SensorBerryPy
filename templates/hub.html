@@ -109,7 +109,8 @@
         });
 
         // Set timout to next full hour
-        setTimeout(() => fetch24hForecast(lat, lon, identifier), getMillisecondsToNextFullHour(new Date()));
+        const timeoutOffset = 2 * 1000;
+        setTimeout(() => fetch24hForecast(lat, lon, identifier), getMillisecondsToNextFullHour(new Date()) + timeoutOffset);
       }
 
       function updateCurrentWeather(identifier, data) {
