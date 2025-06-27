@@ -20,15 +20,15 @@ if len(sys.argv) <= 1:
 elif len(sys.argv) <= 3:
     # Read type of calibration & reference value to be set from program arguments
     calibrationType = sys.argv[1]
-    newReference = float(sys.argv[2])
+    newReference = sys.argv[2]
 
     # Perform recalibration
     print("Starting calibration...")
     if calibrationType == "temperature":
-        scd.temperature_offset = newReference
+        scd.temperature_offset = float(newReference)
         print("Temperature calibration finished!")
     elif calibrationType == "co2":
-        scd.forced_recalibration_reference = newReference
+        scd.forced_recalibration_reference = int(newReference)
         print("Carbon dioxide calibration finished!")
     else:
         print("Calibration failed due to unknown type!")
