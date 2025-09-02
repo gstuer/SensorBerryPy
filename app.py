@@ -22,7 +22,7 @@ while True:
             currentTime = time.time()
             measurement = (currentTime, round(scd.temperature, 1), round(scd.relative_humidity, 1), round(scd.CO2, 1))
             repository.persistMeasurement(measurement)
-    except RuntimeError error:
+    except RuntimeError as error:
         print("Sensor Runtime Error: ", err)
         time.sleep(ERROR_WRITE_PAUSE)
     finally:
