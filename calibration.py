@@ -7,7 +7,6 @@ import time
 # Initialize sensor
 i2c = busio.I2C(board.SCL, board.SDA, frequency=50000)
 scd = adafruit_scd30.SCD30(i2c)
-scd.self_calibration_enabled = False
 
 if len(sys.argv) <= 1:
     # Print current sensor configuration to command line
